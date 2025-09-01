@@ -1,0 +1,12 @@
+{
+  "name": "reactive-cursors-monorepo",
+  "version": "0.0.0",
+  "scripts": {
+    "build:package": "npm run build -w package"
+  },
+  "workspaces": [
+    "package",
+    "frontend",
+    "docs"
+  ]
+}
