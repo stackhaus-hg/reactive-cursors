@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 
 export type Props = {
-  enable?: boolean; // to enable/disable the cursor entirely
+  enable?: boolean; // enable/disable the entire component
 };
 
 const ReactiveCursor = ({
@@ -13,13 +13,7 @@ const ReactiveCursor = ({
 
   if (!enable) return null;
 
-  return (
-    <div
-      ref={cursorRef}
-    >
-      {/* TODO */}
-    </div>
-  );
+  return <div ref={cursorRef}>CURSOR</div>;
 };
 
 export default ReactiveCursor;
