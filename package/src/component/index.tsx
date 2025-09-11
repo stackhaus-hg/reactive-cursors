@@ -137,16 +137,16 @@ const ReactiveCursor = ({
         return (
           <SvgComponent
             key={`reactive-cursor-layer-${i}`}
-            color={layer.fill || defaultSvgOptions.fill}
-            stroke={layer.stroke || defaultSvgOptions.stroke}
-            strokeWidth={layer.strokeSize || defaultSvgOptions.strokeSize}
-            height={layer.size?.height || defaultSvgOptions.size.height}
-            width={layer.size?.width || defaultSvgOptions.size.width}
+            color={layer.fill ?? defaultSvgOptions.fill}
+            stroke={layer.stroke ?? defaultSvgOptions.stroke}
+            strokeWidth={layer.strokeSize ?? defaultSvgOptions.strokeSize}
+            height={layer.size?.height ?? defaultSvgOptions.size.height}
+            width={layer.size?.width ?? defaultSvgOptions.size.width}
             style={{
               position: "absolute",
               top: 0,
               left: 0,
-              opacity: layer.opacity || defaultSvgOptions.opacity,
+              opacity: layer.opacity ?? defaultSvgOptions.opacity,
               zIndex: zIndex - i,
             }}
           />
