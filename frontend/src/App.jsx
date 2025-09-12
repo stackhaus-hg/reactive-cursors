@@ -21,7 +21,14 @@ function App() {
   return (
     <Fragment>
       {/* Import ReactiveCursor Component */}
-      <ReactiveCursor />
+      <ReactiveCursor
+        layers={[
+          { SVG: "cross", fill:"black", stroke:"orangered", strokeSize: 5, size: { width: 40, height: 40 } },
+          { SVG: "circle", fill:"black", stroke:"orangered", strokeSize: 5, size: { width: 60, height: 60 }, delay: 10 },
+        ]}
+        showSystemCursor={false}
+        mixBlendMode="normal"
+      />
 
       {/* New Routing Setup using the Layout component  */}
       {/* Page routing */}
