@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-and-build:
+    name: Lint • Typecheck • Test • Build (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18.x, 20.x]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      # Lint (runs only if an ESLint config exists)
+      - name: Lint
+        if: ${{ hashFiles('**/.eslintrc*') != '' }}
+        run: pnpm run lint
+
+      # Type-check (runs only if a TS config exists)
+      - name: Type check
+        if: ${{ hashFiles('**/tsconfig*.json') != '' }}
+        run: pnpm run typecheck
+
+      # Tests (runs only if a Vitest or Jest config exists)
+      - name: Test
+        if: ${{ hashFiles('**/vitest.config.*','**/jest.config.*') != '' }}
+        run: pnpm run test -- --run
+
+      - name: Build
+        run: pnpm run build
+
+      - name: Upload dist artifact (if any)
+        if: ${{ hashFiles('**/dist/**') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-${{ matrix.node }}
+          path: |
+            **/dist/**
+            !**/node_modules/**
+          if-no-files-found: ignore
+

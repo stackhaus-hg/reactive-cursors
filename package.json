@@ -1,6 +1,7 @@
 {
   "name": "reactive-cursors-monorepo",
   "version": "0.0.0",
+  "publishConfig": { "access": "public" },    
   "scripts": {
     "build:package": "npm run build -w package"
   },
