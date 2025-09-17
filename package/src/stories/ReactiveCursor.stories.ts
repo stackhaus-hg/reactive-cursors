@@ -54,6 +54,29 @@ type Story = StoryObj<typeof meta>;
 export const Arrow: Story = {
   args: {
     enable: true,
-    showSystemCursor: true
+    showSystemCursor: true,
+    mixBlendMode: "difference",
+
+    layers: [{
+      "fill": "black",
+      "stroke": "white",
+      "strokeSize": 10,
+
+      "size": {
+        "height": 20,
+        "width": 20
+      }
+    }, {
+      "fill": "orange",
+      "stroke": "white",
+      "strokeSize": 10,
+
+      "size": {
+        "height": 50,
+        "width": 50
+      },
+
+      "delay": 70
+    }]
   }
 };

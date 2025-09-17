@@ -2,9 +2,9 @@ import { FC, SVGProps } from "react";
 import { SvgDefaultStyles } from "../types";
 
 // Import Default SVG Styles
-import ArrowSvg from "../svg/arrow.svg?react";
-import CircleSvg from "../svg/circle.svg?react";
-import CrossSvg from "../svg/cross.svg?react";
+import ArrowSvg from "../svg/arrow.svg";
+import CircleSvg from "../svg/circle.svg";
+import CrossSvg from "../svg/cross.svg";
 
 // Map each input string to actual SVG
 export const svgStylesMap = {
