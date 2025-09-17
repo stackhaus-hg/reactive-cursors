@@ -23,7 +23,7 @@ function App() {
       {/* Import ReactiveCursor Component */}
       <ReactiveCursor
         layers={[
-          { SVG: "cross", fill:"black", stroke:"orangered", strokeSize: 5, size: { width: 40, height: 40 } },
+          { SVG: "square", fill:"blue", stroke:"cyan", strokeSize: 40, size: { width: 5, height: 5 } },
           { SVG: "circle", fill:"black", stroke:"orangered", strokeSize: 5, size: { width: 60, height: 60 }, delay: 10 },
         ]}
         showSystemCursor={false}

@@ -5,6 +5,7 @@ import { SvgDefaultStyles } from "../types";
 import ArrowSvg from "../svg/arrow.svg?react";
 import CircleSvg from "../svg/circle.svg?react";
 import CrossSvg from "../svg/cross.svg?react";
+import SquareSvg from "../svg/square.svg?react";
 
 // Map each input string to actual SVG
 export const svgStylesMap = {
@@ -12,6 +13,7 @@ export const svgStylesMap = {
   arrow: ArrowSvg,
   circle: CircleSvg,
   cross: CrossSvg,
+  square: SquareSvg,
 };
 
 // Returns an SVG depending on input
