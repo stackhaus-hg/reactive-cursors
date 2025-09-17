@@ -23,10 +23,10 @@ function App() {
       {/* Import ReactiveCursor Component */}
       <ReactiveCursor
         layers={[
-          { SVG: "square", fill:"blue", stroke:"cyan", strokeSize: 40, size: { width: 5, height: 5 } },
-          { SVG: "circle", fill:"black", stroke:"orangered", strokeSize: 5, size: { width: 60, height: 60 }, delay: 10 },
+          { SVG: "square", fill:"blue", stroke:"cyan", strokeSize: 40, size: { width: 5, height: 5 }, delay: 0 },
+          { SVG: "circle", fill:"black", stroke:"orangered", strokeSize: 5, size: { width: 60, height: 60 }, delay: 200 },
         ]}
-        showSystemCursor={false}
+        showSystemCursor={true}
         mixBlendMode="normal"
       />
 

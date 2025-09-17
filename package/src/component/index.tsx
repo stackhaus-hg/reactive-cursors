@@ -43,6 +43,7 @@ const ReactiveCursor = ({
   const cursorRef = useRef<HTMLDivElement>(null); // cursor DOM element
   const targetPosition = useRef({ x: 0, y: 0 }); // current system cursor xy-position, at the current animation frame
   const layerPosisitions = useRef(layers.map(() => ({ x: 0, y: 0 }))); // current xy-position of the custom cursor layers, at the previous animation frame
+  const prevTime = useRef(performance.now()); // last time the animation frame was updated
   const animationFrame = useRef<number | null>(null); // current animation frame
 
   // Precompute layer sizes (width/height) for centering
@@ -80,15 +81,19 @@ const ReactiveCursor = ({
       if (!cursorRef.current) return;
 
       const children = cursorRef.current.children;
+      const now = performance.now();
+      const delta = now - prevTime.current;
+      prevTime.current = now;
 
       layers.forEach((layer, i) => {
         const pos = layerPosisitions.current[i];
-        const lerp = (layer.delay ?? defaultSvgOptions.delay) + 1;
+        const delayMs = layer.delay ?? defaultSvgOptions.delay;
         const size = layerSizes[i];
 
         // update position
-        pos.x += ((targetPosition.current.x - pos.x) * 1) / lerp;
-        pos.y += ((targetPosition.current.y - pos.y) * 1) / lerp;
+        const smoothing = Math.exp(-delta / delayMs); // exponential smoothing based on ms delay
+        pos.x = pos.x * smoothing + targetPosition.current.x * (1 - smoothing);
+        pos.y = pos.y * smoothing + targetPosition.current.y * (1 - smoothing);
 
         // apply transform directly to layer
         const layerEl = children[i] as HTMLElement;
