@@ -8,5 +8,8 @@
     "package",
     "frontend",
     "docs"
-  ]
+  ],
+  "dependencies": {
+    "lucide-react": "^0.544.0"
+  }
 }
