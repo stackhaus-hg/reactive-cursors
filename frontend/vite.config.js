@@ -6,7 +6,13 @@ import path from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), vanillaExtractPlugin(), svgr()],
+  plugins: [
+    react(),
+    vanillaExtractPlugin(),
+    svgr({
+      include: "**/*.svg",
+    }),
+  ],
   server: { port: 3000 },
   resolve: {
     alias: {
