@@ -1,8 +1,7 @@
 // Header component
 
 // Node imports
-import { Container, Nav, Navbar, Button, Dropdown } from 'react-bootstrap'
-import { RiCursorFill } from 'react-icons/ri'
+import { Container, Nav, Navbar } from 'react-bootstrap'
 import { PiCursorClickBold, PiCursorClickFill } from 'react-icons/pi';
 import { Link } from 'react-router-dom';  // client-side page-routing replacement for href
 
