@@ -1,9 +1,11 @@
 // Header component
 
 // Node imports
-import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
+import { Container, Nav, Navbar, Button, Dropdown } from 'react-bootstrap'
+// import Container from 'react-bootstrap/Container';
+// import Nav from 'react-bootstrap/Nav';
+// import Navbar from 'react-bootstrap/Navbar';
+// import CloseButton from 'react-bootstrap/esm/CloseButton.js';
 // import NavDropdown from 'react-bootstrap/NavDropdown';
 import { Link } from 'react-router-dom';  // client-side page-routing replacement for href
 
@@ -23,20 +25,40 @@ function Header() {
       <Navbar expand="lg" className="bg-body-tertiary">
         <Container>
           {/* <Navbar.Brand href="/">CBV</Navbar.Brand> */}
-          <Navbar.Brand as={Link} to={""}>Stackhaus</Navbar.Brand>
+          <Navbar.Brand as={Link} to={""}>
+            <img
+              src="/images/StackhausLogo159x128.png"
+              width="30"
+              height="30"
+              className="d-inline-block align-top"
+              alt="Stackhaus Logo"
+            />{' '}
+            Reactive Cursor
+          </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             {/* Page navigation section on LHS of Navbar */}
             <Nav className="me-auto">            
               {/* <Nav.Link href="/">Home</Nav.Link> */}
-              {/* <Nav.Link as={Link} to={""}>Home</Nav.Link> */}
+              <Nav.Link as={Link} to={"features"}>Features</Nav.Link>
               <Nav.Link as={Link} to={"doco"}>Documentation</Nav.Link>
               {/* <Nav.Link as={Link} to={"github"}>GitHub</Nav.Link> */}
               <Nav.Link as={Link} to={`${config.githubRepoURL}`} target="_blank">GitHub</Nav.Link>                     
             </Nav>
             {/* Function options on the RHS of Navbar */}
-            <Nav>
-              <Nav.Link as={Link} to={""}>Testing</Nav.Link>        
+            <Nav>        
+              {/* <Button variant="secondary">Cursor</Button>{'  '} */}
+              <Dropdown>
+                <Dropdown.Toggle variant="secondary" id="dropdown-basic">
+                  Cursor
+                </Dropdown.Toggle>
+
+                <Dropdown.Menu>
+                  <Dropdown.Item href="#/action-1">Shape</Dropdown.Item>
+                  <Dropdown.Item href="#/action-2">Speed</Dropdown.Item>
+                  <Dropdown.Item href="#/action-3">Layers</Dropdown.Item>
+                </Dropdown.Menu>
+              </Dropdown>                                
             </Nav>
           </Navbar.Collapse>
         </Container>

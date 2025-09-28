@@ -4,7 +4,7 @@
 function Stackhaus() {
 
   return (
-    <div>Homepage for Stackhaus</div>
+    <div>Homepage for Stackhaus' Reactive Cursor Project</div>
   )
 }
 
