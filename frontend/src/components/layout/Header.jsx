@@ -2,11 +2,8 @@
 
 // Node imports
 import { Container, Nav, Navbar, Button, Dropdown } from 'react-bootstrap'
-// import Container from 'react-bootstrap/Container';
-// import Nav from 'react-bootstrap/Nav';
-// import Navbar from 'react-bootstrap/Navbar';
-// import CloseButton from 'react-bootstrap/esm/CloseButton.js';
-// import NavDropdown from 'react-bootstrap/NavDropdown';
+import { RiCursorFill } from 'react-icons/ri'
+import { PiCursorClickBold, PiCursorClickFill } from 'react-icons/pi';
 import { Link } from 'react-router-dom';  // client-side page-routing replacement for href
 
 // vanilla-extract styling
@@ -46,19 +43,10 @@ function Header() {
               <Nav.Link as={Link} to={`${config.githubRepoURL}`} target="_blank">GitHub</Nav.Link>                     
             </Nav>
             {/* Function options on the RHS of Navbar */}
-            <Nav>        
-              {/* <Button variant="secondary">Cursor</Button>{'  '} */}
-              <Dropdown>
-                <Dropdown.Toggle variant="secondary" id="dropdown-basic">
-                  Cursor
-                </Dropdown.Toggle>
-
-                <Dropdown.Menu>
-                  <Dropdown.Item href="#/action-1">Shape</Dropdown.Item>
-                  <Dropdown.Item href="#/action-2">Speed</Dropdown.Item>
-                  <Dropdown.Item href="#/action-3">Layers</Dropdown.Item>
-                </Dropdown.Menu>
-              </Dropdown>                                
+            <Nav>     
+              {/* Toggle for cursors */}
+              <PiCursorClickBold />
+              {/* <PiCursorClickFill /> */}
             </Nav>
           </Navbar.Collapse>
         </Container>
