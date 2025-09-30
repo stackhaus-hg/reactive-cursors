@@ -1,10 +1,8 @@
 // Header component
 
 // Node imports
-import Container from 'react-bootstrap/Container';
-import Nav from 'react-bootstrap/Nav';
-import Navbar from 'react-bootstrap/Navbar';
-// import NavDropdown from 'react-bootstrap/NavDropdown';
+import { Container, Nav, Navbar } from 'react-bootstrap'
+import { PiCursorClickBold, PiCursorClickFill } from 'react-icons/pi';
 import { Link } from 'react-router-dom';  // client-side page-routing replacement for href
 
 // vanilla-extract styling
@@ -23,20 +21,31 @@ function Header() {
       <Navbar expand="lg" className="bg-body-tertiary">
         <Container>
           {/* <Navbar.Brand href="/">CBV</Navbar.Brand> */}
-          <Navbar.Brand as={Link} to={""}>Stackhaus</Navbar.Brand>
+          <Navbar.Brand as={Link} to={""}>
+            <img
+              src="/images/StackhausLogo159x128.png"
+              width="30"
+              height="30"
+              className="d-inline-block align-top"
+              alt="Stackhaus Logo"
+            />{' '}
+            Reactive Cursor
+          </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav">
             {/* Page navigation section on LHS of Navbar */}
             <Nav className="me-auto">            
               {/* <Nav.Link href="/">Home</Nav.Link> */}
-              {/* <Nav.Link as={Link} to={""}>Home</Nav.Link> */}
-              <Nav.Link as={Link} to={"doco"}>Documentation</Nav.Link>
+              <Nav.Link as={Link} to={"features"}>Features</Nav.Link>
+              <Nav.Link as={Link} to={"docs"}>Documentation</Nav.Link>
               {/* <Nav.Link as={Link} to={"github"}>GitHub</Nav.Link> */}
               <Nav.Link as={Link} to={`${config.githubRepoURL}`} target="_blank">GitHub</Nav.Link>                     
             </Nav>
             {/* Function options on the RHS of Navbar */}
-            <Nav>
-              <Nav.Link as={Link} to={""}>Testing</Nav.Link>        
+            <Nav>     
+              {/* Toggle for cursors */}
+              <PiCursorClickBold />
+              {/* <PiCursorClickFill /> */}
             </Nav>
           </Navbar.Collapse>
         </Container>

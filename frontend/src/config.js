@@ -1,7 +1,8 @@
 // Configuration file
 
 const config = {
-  githubRepoURL: import.meta.env.VITE_GITHUB_REPOSITORY,
+  // githubRepoURL: import.meta.env.VITE_GITHUB_REPOSITORY,
+  githubRepoURL: "https://github.com/stackhaus-hg/reactive-cursors",
   websiteURL: ""  // Yet to be hosted ***
 }
 

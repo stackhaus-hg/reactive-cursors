@@ -9,6 +9,7 @@ import Stackhaus from "./pages/StackhausPage";
 import DocoPage from "./pages/DocoPage";
 import NotFoundPage from "./pages/NotFoundPage";
 import Layout from "./components/layout/Layout"; // Layout component that structures our App
+import FeaturesPage from "./pages/FeaturesPage";
 
 // Workspace imports
 import ReactiveCursor from "reactive-cursors";
@@ -29,10 +30,9 @@ function App() {
         <Route path="/" element={<Layout />}>
           {" "}
           {/* Note how the Layout component is used as an element instead of a wrapper */}
-          {/* Remaining routes are nested (and so are children of the Layout route as well as also inheriting the path of the parent) */}
           <Route index element={<Stackhaus />} />{" "}
-          {/* Use index rather than path='/' */}
-          <Route path="doco" element={<DocoPage />} />
+          <Route path="features" element={<FeaturesPage />} />
+          <Route path="docs" element={<DocoPage />} />
           {/* Catchall segment ie. Page not found */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
