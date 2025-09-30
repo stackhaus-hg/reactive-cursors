@@ -5,12 +5,13 @@ on:
     branches:
       - main # Deploy only when pushing to the 'main' branch
     paths:
-    - 'frontend/**'
-  workflow_dispatch:   # Allows manual trigger from GitHub Actions UI 
+      - "frontend/**"
+  workflow_dispatch: # Allows manual trigger from GitHub Actions UI
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: frontend
@@ -36,6 +37,7 @@ jobs:
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
       - name: Deploy to GitHub Pages
-        run: npm run deploy
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GH_PAGES_TOKEN }}
+          publish_dir: ./frontend/dist
