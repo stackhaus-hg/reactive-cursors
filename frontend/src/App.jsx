@@ -32,7 +32,7 @@ function App() {
           {/* Note how the Layout component is used as an element instead of a wrapper */}
           <Route index element={<Stackhaus />} />{" "}
           <Route path="features" element={<FeaturesPage />} />
-          <Route path="doco" element={<DocoPage />} />
+          <Route path="docs" element={<DocoPage />} />
           {/* Catchall segment ie. Page not found */}
           <Route path="*" element={<NotFoundPage />} />
         </Route>

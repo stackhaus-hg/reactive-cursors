@@ -37,7 +37,7 @@ function Header() {
             <Nav className="me-auto">            
               {/* <Nav.Link href="/">Home</Nav.Link> */}
               <Nav.Link as={Link} to={"features"}>Features</Nav.Link>
-              <Nav.Link as={Link} to={"doco"}>Documentation</Nav.Link>
+              <Nav.Link as={Link} to={"docs"}>Documentation</Nav.Link>
               {/* <Nav.Link as={Link} to={"github"}>GitHub</Nav.Link> */}
               <Nav.Link as={Link} to={`${config.githubRepoURL}`} target="_blank">GitHub</Nav.Link>                     
             </Nav>
