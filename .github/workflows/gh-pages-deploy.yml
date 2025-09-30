@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main # Deploy only when pushing to the 'main' branch
+    paths:
+    - 'frontend/**' 
 
 jobs:
   deploy:
@@ -19,7 +21,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
 
       - name: Install Dependencies
         run: npm install
