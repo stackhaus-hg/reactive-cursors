@@ -6,7 +6,7 @@ on:
       - main # Deploy only when pushing to the 'main' branch
     paths:
     - 'frontend/**'
-    workflow_dispatch:   # Allows manual trigger from GitHub Actions UI 
+  workflow_dispatch:   # Allows manual trigger from GitHub Actions UI 
 
 jobs:
   deploy:
