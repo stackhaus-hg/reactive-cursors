@@ -1,159 +1,169 @@
 import { CSSProperties, useEffect, useRef } from "react";
-import { CursorLayer } from "../types";
-import { resolveSvg, svgStylesMap } from "../utils";
+import type { CursorLayer } from "../types";
+import { resolveSvg } from "../utils";
 
-// Default Cursor Layer Options
-const defaultSvgOptions: Required<CursorLayer> = {
-  SVG: svgStylesMap.default,
-  fill: "black",
-  stroke: "white",
-  strokeSize: 10,
-  opacity: 1,
-  size: {
-    height: 100,
-    width: 100,
-  },
-  delay: 0,
-};
+/**
+ * Minimal global hover effect:
+ * - Detects if element under the cursor has CSS `cursor: pointer`
+ * - Smoothly scales ALL layers while hovering
+ * - No movement/system cursor rewrites (keeps scope aligned with feedback)
+ */
 
-// Component Props
 export type Props = {
-  enable?: boolean; // enable/disable the entire component
-  showSystemCursor?: boolean; // show/hide the system cursor
-  layers?: CursorLayer[]; // defines each cursor draw layer
-  mixBlendMode?: CSSProperties["mixBlendMode"]; // CSS mix-blend-mode property to apply to the entire component
-  zIndex?: number; // custom-define the z-index of the cursor (default is max z-index value)
+  enable?: boolean;
+  showSystemCursor?: boolean;
+  layers?: CursorLayer[];
+  mixBlendMode?: CSSProperties["mixBlendMode"];
+  zIndex?: number;
+
+  /** Scale applied to all layers while hovering over `cursor: pointer`. */
+  hoverScale?: number;        // default 1.2
+  /** Lerp factor [0..1). Lower=snappier; Higher=smoother. */
+  hoverSmoothing?: number;    // default 0.15
 };
 
-// Component
 const ReactiveCursor = ({
   enable = true,
   layers = [
+    // small default so it never looks massive unless explicitly set
     {
+      SVG: "circle",
       fill: "black",
       stroke: "white",
-      strokeSize: 10,
-      size: { height: 20, width: 20 },
+      strokeSize: 1,
+      size: { height: 12, width: 12 },
     },
   ],
   showSystemCursor = true,
   mixBlendMode = "normal",
   zIndex = 2147483647,
+  hoverScale = 1.2,
+  hoverSmoothing = 0.15,
 }: Props) => {
-  const cursorRef = useRef<HTMLDivElement>(null); // cursor DOM element
-  const targetPosition = useRef({ x: 0, y: 0 }); // current system cursor xy-position, at the current animation frame
-  const layerPosisitions = useRef(layers.map(() => ({ x: 0, y: 0 }))); // current xy-position of the custom cursor layers, at the previous animation frame
-  const prevTime = useRef(performance.now()); // last time the animation frame was updated
-  const animationFrame = useRef<number | null>(null); // current animation frame
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const target = useRef({ x: 0, y: 0 });
+  const prevTime = useRef(performance.now());
+  const raf = useRef<number | null>(null);
 
-  // Precompute layer sizes (width/height) for centering
-  const layerSizes = layers.map(
-    (layer) => layer.size ?? defaultSvgOptions.size
-  );
+  // per-layer smoothed positions
+  const layerPos = useRef(layers.map(() => ({ x: 0, y: 0 })));
 
-  // Hide system cursor
+  // global hover scale state
+  const isPointer = useRef(false);
+  const scaleCurrent = useRef(1);
+  const scaleTarget = useRef(1);
+
+  // keep layerPos length in sync with layers
+  if (layerPos.current.length !== layers.length) {
+    layerPos.current = layers.map(() => ({ x: target.current.x, y: target.current.y }));
+  }
+
+  // show/hide system cursor (parity with existing behavior)
   useEffect(() => {
-    if (!enable || showSystemCursor) return;
-
-    // get the originally set values
-    const originalRootCursor = document.documentElement.style.cursor;
-    const originalBodyCursor = document.body.style.cursor;
-
-    // override styles with no cursor
-    document.body.style.setProperty("cursor", "none", "important");
-    document.documentElement.style.setProperty("cursor", "none", "important");
-
+    const prev = document.body.style.cursor;
+    document.body.style.cursor = showSystemCursor ? prev || "" : "none";
     return () => {
-      document.documentElement.style.setProperty("cursor", originalRootCursor);
-      document.body.style.setProperty("cursor", originalBodyCursor);
+      document.body.style.cursor = prev;
     };
-  }, [enable, showSystemCursor]);
+  }, [showSystemCursor]);
 
-  // Position and animation of cursor
+  // mousemove + pointer detection
   useEffect(() => {
-    // Handler for calculating current system cursor position
-    const handleMouseMove = (e: MouseEvent) => {
-      targetPosition.current = { x: e.clientX, y: e.clientY };
+    if (!enable) return;
+
+    const onMove = (e: MouseEvent) => {
+      target.current = { x: e.clientX, y: e.clientY };
+      const el = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement | null;
+      if (el) {
+        const c = getComputedStyle(el).cursor || "";
+        isPointer.current = c.includes("pointer");
+      } else {
+        isPointer.current = false;
+      }
+      scaleTarget.current = isPointer.current ? Math.max(1, hoverScale) : 1;
     };
 
-    // Recursive function for animating each cursor layer
-    const animate = () => {
-      if (!cursorRef.current) return;
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [enable, hoverScale]);
 
-      const children = cursorRef.current.children;
+  // RAF animation
+  useEffect(() => {
+    if (!enable) return;
+
+    const tick = () => {
+      if (!cursorRef.current) {
+        raf.current = requestAnimationFrame(tick);
+        return;
+      }
+
       const now = performance.now();
-      const delta = now - prevTime.current;
       prevTime.current = now;
 
-      layers.forEach((layer, i) => {
-        const pos = layerPosisitions.current[i];
-        const delayMs = layer.delay ?? defaultSvgOptions.delay;
-        const size = layerSizes[i];
+      const children = cursorRef.current.children;
 
-        // update position
-        const smoothing = Math.exp(-delta / delayMs); // exponential smoothing based on ms delay
-        pos.x = pos.x * smoothing + targetPosition.current.x * (1 - smoothing);
-        pos.y = pos.y * smoothing + targetPosition.current.y * (1 - smoothing);
+      // approach target scale
+      const hs = Math.min(Math.max(hoverSmoothing, 0), 0.999);
+      scaleCurrent.current = scaleCurrent.current * hs + scaleTarget.current * (1 - hs);
 
-        // apply transform directly to layer
-        const layerEl = children[i] as HTMLElement;
-        layerEl.style.transform = `translate3d(${pos.x - size.width / 2}px, ${
-          pos.y - size.height / 2
-        }px, 0)`; // use translate3d as it may be more likely to force GPU computation for performance (?)
+      // precompute sizes
+      const sizes = layers.map((l) => l.size ?? { width: 12, height: 12 });
+
+      Array.from(children).forEach((child, i) => {
+        const size = sizes[i];
+        const l = layers[i];
+        const s = Math.min(Math.max((l.delay ?? 0) / 100, 0), 0.999);
+
+        const pos = layerPos.current[i];
+        pos.x = pos.x * s + target.current.x * (1 - s);
+        pos.y = pos.y * s + target.current.y * (1 - s);
+
+        const el = child as HTMLElement;
+        el.style.transform = `translate3d(${pos.x - size.width / 2}px, ${pos.y - size.height / 2}px, 0) scale(${scaleCurrent.current})`;
+        el.style.transformOrigin = "center";
       });
 
-      // call next animation frame
-      animationFrame.current = requestAnimationFrame(animate);
+      raf.current = requestAnimationFrame(tick);
     };
 
-    // bind the mousemove handler
-    window.addEventListener("mousemove", handleMouseMove);
-    // trigger the first animation frame
-    animationFrame.current = requestAnimationFrame(animate);
-
-    // remove effects on unmount
+    raf.current = requestAnimationFrame(tick);
     return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
+      if (raf.current) cancelAnimationFrame(raf.current);
     };
-  }, [enable, layers]);
+  }, [enable, layers, hoverSmoothing]);
 
-  // Don't render anything if cursor is disabled
   if (!enable) return null;
 
-  // ReactiveCursor Component
   return (
     <div
       ref={cursorRef}
       style={{
+        pointerEvents: "none", // so hit-testing reaches underlying elements
         position: "fixed",
-        top: 0,
-        left: 0,
-        pointerEvents: "none",
-        zIndex: zIndex,
-        mixBlendMode: mixBlendMode,
+        inset: 0,
+        mixBlendMode,
+        zIndex,
       }}
     >
-      {/* Render each layer in order, reducing z-index per layer */}
       {layers.map((layer, i) => {
-        // Resolve the SVG component
-        const SvgComponent = resolveSvg(layer.SVG);
-        // Render the SVG cursor layer
+        const Svg = resolveSvg(layer.SVG ?? "circle");
+        const size = layer.size ?? { width: 12, height: 12 };
         return (
-          <SvgComponent
-            key={`reactive-cursor-layer-${i}`}
-            color={layer.fill ?? defaultSvgOptions.fill}
-            stroke={layer.stroke ?? defaultSvgOptions.stroke}
-            strokeWidth={layer.strokeSize ?? defaultSvgOptions.strokeSize}
-            height={layer.size?.height ?? defaultSvgOptions.size.height}
-            width={layer.size?.width ?? defaultSvgOptions.size.width}
+          <Svg
+            key={i}
+            width={size.width}
+            height={size.height}
+            viewBox={`0 0 ${size.width} ${size.height}`}
             style={{
               position: "absolute",
               top: 0,
               left: 0,
-              opacity: layer.opacity ?? defaultSvgOptions.opacity,
-              zIndex: zIndex - i,
+              opacity: layer.opacity ?? 1,
+              zIndex: (zIndex || 0) - i,
             }}
+            fill={layer.fill ?? "black"}
+            stroke={layer.stroke ?? "white"}
+            strokeWidth={layer.strokeSize ?? 1}
           />
         );
       })}
