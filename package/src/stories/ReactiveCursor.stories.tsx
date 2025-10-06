@@ -1,3 +1,5 @@
+// Story for Stackhaus' ReactiveCursor component (in /component/index.tsx)
+
 import React from "react";
 import type { Meta, StoryObj } from "@storybook/react";
 import ReactiveCursor from "../component/index";
@@ -27,23 +29,29 @@ export const Arrow: Story = {
         fill: "black",
         stroke: "white",
         strokeSize: 10,
-        size: { height: 20, width: 20 },
+        size: { width: 20, height: 20 },
       },
       {
         fill: "orange",
         stroke: "white",
         strokeSize: 10,
-        size: { height: 50, width: 50 },
+        size: { width: 50, height: 50 },
         delay: 70,
       },
     ],
   },
 };
 
+/**
+ * Demo of the new global hover effect.
+ * Small center dot + thin ring so it looks like a pointer, not a big blob.
+ * Scope stays minimal (Marco's feedback): only uses the new props, no arch changes.
+ */
 export const HoverDemo: Story = {
   render: (args) => (
     <div style={{ padding: 32 }}>
-      <ReactiveCursor {...args} hoverScale={1.25} hoverSmoothing={0.18} />
+      {/* modest scaling so it doesn’t blow up */}
+      <ReactiveCursor {...args} hoverScale={1.2} />
       <div style={{ display: "flex", gap: 16, marginTop: 24 }}>
         <button style={{ cursor: "pointer", padding: "12px 16px" }}>
           Hover me (button)
@@ -58,23 +66,26 @@ export const HoverDemo: Story = {
     </div>
   ),
   args: {
+    enable: true,
+    showSystemCursor: true,
+    mixBlendMode: "normal",
     layers: [
       // small center dot
       {
         SVG: "circle",
-        fill: "#000",
+        fill: "black",
         stroke: "white",
         strokeSize: 1,
-        size: { width: 8, height: 8 },
+        size: { width: 6, height: 6 },
       },
-      // thin ring
+      // thin trailing ring
       {
         SVG: "circle",
         fill: "transparent",
         stroke: "white",
-        strokeSize: 2,
-        size: { width: 16, height: 16 },
-        delay: 40,
+        strokeSize: 1,
+        size: { width: 14, height: 14 },
+        delay: 60,
       },
     ],
   },
