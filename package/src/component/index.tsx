@@ -23,9 +23,10 @@ export type Props = {
   layers?: CursorLayer[]; // defines each cursor draw layer
   mixBlendMode?: CSSProperties["mixBlendMode"]; // CSS mix-blend-mode property to apply to the entire component
   zIndex?: number; // custom-define the z-index of the cursor (default is max z-index value)
+  allowTouch?: boolean; // allow cursor on touch devices
+  ignoreAccessibility?: boolean; // ignore accessibility settings
 };
 
-// Component
 const ReactiveCursor = ({
   enable = true,
   layers = [
@@ -39,6 +40,8 @@ const ReactiveCursor = ({
   showSystemCursor = true,
   mixBlendMode = "normal",
   zIndex = 2147483647,
+  allowTouch = false,
+  ignoreAccessibility = false,
 }: Props) => {
   const cursorRef = useRef<HTMLDivElement>(null); // cursor DOM element
   const targetPosition = useRef({ x: 0, y: 0 }); // current system cursor xy-position, at the current animation frame
@@ -118,10 +121,41 @@ const ReactiveCursor = ({
     };
   }, [enable, layers]);
 
-  // Don't render anything if cursor is disabled
-  if (!enable) return null;
+
+  // Detect touch device
+  const isTouchDevice = typeof window !== "undefined" && (
+    "ontouchstart" in window ||
+    (navigator.maxTouchPoints && navigator.maxTouchPoints > 0)
+  );
+
+  // Detect accessibility needs
+  const prefersReducedMotion = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const forcedColors = typeof window !== "undefined" && window.matchMedia && window.matchMedia("(forced-colors: active)").matches;
+  const hasAccessibilityNeeds = prefersReducedMotion || forcedColors;
+
+  // Disable cursor if touch device (unless allowTouch) or accessibility needs (unless ignoreAccessibility)
+  if (!enable || (isTouchDevice && !allowTouch) || (hasAccessibilityNeeds && !ignoreAccessibility)) return null;
 
   // ReactiveCursor Component
+  // Ensure system cursor is shown for elements that aren't cursor:default or cursor:pointer
+  useEffect(() => {
+    if (!enable) return;
+    // Find all elements except those with cursor:default or cursor:pointer
+    const allElements = document.querySelectorAll<HTMLElement>("*");
+    allElements.forEach((el) => {
+      const style = window.getComputedStyle(el);  
+      if (style.cursor !== "default" && style.cursor !== "pointer" && style.cursor !== "none") {
+        el.style.cursor = "crosshair";
+      }
+    });
+    return () => {
+      allElements.forEach((el) => {
+        el.style.cursor = "";
+      });
+    };
+  }, [enable]);
+// this is the   multi-layer animated  SVG cursor which follows the  mouse with smoothing and accessibility checks. 
+
   return (
     <div
       ref={cursorRef}
