@@ -1,13 +1,28 @@
 {
   "name": "reactive-cursors-monorepo",
   "version": "0.0.0",
-  "publishConfig": { "access": "public" },    
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
-    "build:package": "npm run build -w package"
+    "build:package": "npm run build -w package",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "npm run lint -w package",
+    "lint:fix": "npm run lint:fix -w package",
+    "lint:frontend": "npm run lint -w frontend",
+    "test": "npm run test -w package",
+    "ci:check": "npm run format:check && npm run lint && npm run build:package",
+    "prepare": "npm run build:package",
+    "check": "node scripts/check-code.bat",
+    "check:unix": "bash scripts/check-code.sh"
   },
   "workspaces": [
     "package",
     "frontend",
     "docs"
-  ]
+  ],
+  "devDependencies": {
+    "prettier": "^2.8.8"
+  }
 }

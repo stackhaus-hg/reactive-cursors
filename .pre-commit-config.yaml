@@ -1,0 +1,24 @@
+# Pre-commit configuration
+# Install with: npm install -g pre-commit && pre-commit install
+
+repos:
+  - repo: local
+    hooks:
+      - id: prettier
+        name: Prettier
+        entry: npm run format:check
+        language: system
+        files: \.(js|jsx|ts|tsx|json|md|yml|yaml)$
+
+      - id: eslint
+        name: ESLint
+        entry: npm run lint
+        language: system
+        files: \.(js|jsx|ts|tsx)$
+
+      - id: typescript
+        name: TypeScript
+        entry: bash -c 'cd package && npx tsc --noEmit'
+        language: system
+        files: \.(ts|tsx)$
+        pass_filenames: false
