@@ -23,7 +23,7 @@ function Header() {
           {/* <Navbar.Brand href="/">CBV</Navbar.Brand> */}
           <Navbar.Brand as={Link} to={""}>
             <img
-              src="/images/StackhausLogo159x128.png"
+              src="images/StackhausLogo159x128.png"
               width="30"
               height="30"
               className="d-inline-block align-top"

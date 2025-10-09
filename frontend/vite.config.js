@@ -13,6 +13,7 @@ export default defineConfig({
       include: "**/*.svg",
     }),
   ],
+  base: "/reactive-cursors/", // required for GH pages deployment
   server: { port: 3000 },
   resolve: {
     alias: {
