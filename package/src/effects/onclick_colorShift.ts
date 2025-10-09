@@ -1,8 +1,9 @@
 import { EffectHandler } from "./types";
+import { getAccessibleDuration, getAccessibleColor } from "../utils/accessibility";
 
-const colorShift: EffectHandler = (cfg, ctx) => {
-  const color = cfg.color ?? "rgba(255,255,255,0.9)";
-  const duration = cfg.durationMs ?? 250;
+  // Use accessibility utilities for color and duration
+  const color = getAccessibleColor(cfg.color ?? "rgba(255,255,255,0.9)");
+  const duration = getAccessibleDuration(cfg.durationMs ?? 250);
   ctx.layerElements.forEach((el) => {
     const origFill = el.getAttribute("fill") || "";
     const origStroke = el.getAttribute("stroke") || "";
