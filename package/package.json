@@ -38,6 +38,9 @@
   "sideEffects": false,
   "scripts": {
     "build": "rollup -c",
+    "lint": "eslint src --ext .ts,.tsx --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**'",
+    "lint:fix": "eslint src --ext .ts,.tsx --ignore-pattern 'node_modules/**' --ignore-pattern 'dist/**' --fix",
+    "format": "prettier --write src --ignore-path ../.prettierignore",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"
   },
@@ -46,6 +49,7 @@
     "react-dom": ">=19"
   },
   "devDependencies": {
+    "@eslint/js": "^9.37.0",
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-node-resolve": "^16.0.1",
     "@rollup/plugin-typescript": "^12.1.4",
@@ -53,12 +57,16 @@
     "@storybook/react-vite": "^9.1.6",
     "@svgr/rollup": "^8.1.0",
     "@types/react": "^19.1.12",
+    "eslint": "^9.37.0",
+    "globals": "^16.4.0",
+    "jiti": "^2.6.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "rollup": "^4.50.0",
     "storybook": "^9.1.6",
     "tslib": "^2.8.1",
     "typescript": "^5.9.2",
+    "typescript-eslint": "^8.46.0",
     "vite-plugin-svgr": "^4.5.0"
   }
 }

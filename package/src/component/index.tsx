@@ -1,55 +1,43 @@
-import { CSSProperties, useEffect, useRef, useMemo, useState } from "react";
-import { createPortal } from "react-dom";
+import { CSSProperties, useEffect, useRef, useState, useCallback } from "react";
+import type { EffectConfig } from "../effects/types";
 import { CursorLayer } from "../types";
 import { resolveSvg, svgStylesMap } from "../utils";
+import {
+  shouldDisableCursor,
+  announceToScreenReader,
+  AccessibilityWatcher,
+} from "../utils/accessibility";
+import effectHandlers from "../effects/index";
 
-// Default layer options
+// Default Cursor Layer Options
 const defaultSvgOptions: Required<CursorLayer> = {
   SVG: svgStylesMap.default,
   fill: "black",
   stroke: "white",
   strokeSize: 10,
   opacity: 1,
-  size: { height: 100, width: 100 },
+  size: {
+    height: 100,
+    width: 100,
+  },
   delay: 0,
 };
 
-// Props
+// Component Props
 export type Props = {
-  enable?: boolean;
-  showSystemCursor?: boolean;
-  layers?: CursorLayer[];
-  clickEffect?:
-    | {
-        type:
-          | "onclick_scale"
-          | "onclick_ripple"
-          | "onclick_rotate"
-          | "onclick_colorShift"
-          | "onclick_burst";
-        amount?: number;
-        durationMs?: number;
-        color?: string;
-      }
-    | Array<{
-        type:
-          | "onclick_scale"
-          | "onclick_ripple"
-          | "onclick_rotate"
-          | "onclick_colorShift"
-          | "onclick_burst";
-        amount?: number;
-        durationMs?: number;
-        color?: string;
-      }>;
-  mixBlendMode?: CSSProperties["mixBlendMode"];
-  zIndex?: number;
-  allowTouch?: boolean;
-  ignoreAccessibility?: boolean;
-  className?: string;
-  style?: CSSProperties;
+  enable?: boolean; // enable/disable the entire component
+  showSystemCursor?: boolean; // show/hide the system cursor
+  layers?: CursorLayer[]; // defines each cursor draw layer
+  clickEffect?: EffectConfig | EffectConfig[]; // clickEffect can be a single effect or an array of effects. Effects are triggered on pointerdown. // Example: { type: 'onclick_scale', amount: 1.5, durationMs: 200 }
+  mixBlendMode?: CSSProperties["mixBlendMode"]; // CSS mix-blend-mode property to apply to the entire component
+  zIndex?: number; // custom-define the z-index of the cursor (default is max z-index value)
+  allowTouch?: boolean; // allow cursor on touch devices
+  ignoreAccessibility?: boolean; // ignore accessibility settings (reduced motion, forced colors) and always show cursor
+  announceEffects?: boolean; // announce effects to screen readers (default: false)
+  respectSystemPreferences?: boolean; // automatically adjust to system accessibility preferences (default: true)
 };
 
+// ReactiveCursor Component Definition
 const ReactiveCursor = ({
   enable = true,
   layers = [
@@ -65,214 +53,248 @@ const ReactiveCursor = ({
   zIndex = 2147483647,
   allowTouch = false,
   ignoreAccessibility = false,
+  announceEffects = false,
+  respectSystemPreferences = true,
   clickEffect,
-  className,
-  style,
 }: Props) => {
-  const cursorRef = useRef<HTMLDivElement>(null);
-  const targetPosition = useRef({ x: 0, y: 0 });
-  const layerPositions = useRef(layers.map(() => ({ x: 0, y: 0 })));
-  const prevTime = useRef(performance.now());
-  const animationFrame = useRef<number | null>(null);
+  const cursorRef = useRef<HTMLDivElement>(null); // cursor DOM element
+  const targetPosition = useRef({ x: 0, y: 0 }); // current system cursor xy-position, at the current animation frame
+  const layerPosisitions = useRef(layers.map(() => ({ x: 0, y: 0 }))); // current xy-position of the custom cursor layers, at the previous animation frame
+  const prevTime = useRef(performance.now()); // last time the animation frame was updated
+  const animationFrame = useRef<number | null>(null); // current animation frame
+  const accessibilityWatcher = useRef<AccessibilityWatcher | null>(null);
 
-  const [env, setEnv] = useState({
-    isTouch: false,
-    reducedMotion: false,
-    forcedColors: false,
-  });
+  // State for dynamic accessibility changes
+  const [isAccessibilityDisabled, setIsAccessibilityDisabled] = useState(() =>
+    shouldDisableCursor(allowTouch, ignoreAccessibility)
+  );
 
-  // Detect environment (SSR-safe)
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const isTouch =
-      "ontouchstart" in window || (navigator.maxTouchPoints ?? 0) > 0;
-    const reducedMotion =
-      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches ?? false;
-    const forcedColors =
-      window.matchMedia?.("(forced-colors: active)")?.matches ?? false;
-    setEnv({ isTouch, reducedMotion, forcedColors });
-  }, []);
+  // Precompute layer sizes (width/height) for centering
+  const layerSizes = layers.map(
+    (layer) => layer.size ?? defaultSvgOptions.size
+  );
 
-  const hasA11yNeeds = env.reducedMotion || env.forcedColors;
-  const clickEffects = Array.isArray(clickEffect)
+  // normalize clickEffect into an array for easy iteration
+  const clickEffects: EffectConfig[] = Array.isArray(clickEffect)
     ? clickEffect
     : clickEffect
     ? [clickEffect]
     : [];
 
-  // If disabled/touch (and not allowed)/a11y preference: skip the cursor render
-  if (
-    !enable ||
-    (env.isTouch && !allowTouch) ||
-    (hasA11yNeeds && !ignoreAccessibility)
-  )
-    return null;
+  // Dynamic accessibility monitoring
+  const handleAccessibilityChange = useCallback(() => {
+    if (respectSystemPreferences) {
+      setIsAccessibilityDisabled(
+        shouldDisableCursor(allowTouch, ignoreAccessibility)
+      );
+    }
+  }, [allowTouch, ignoreAccessibility, respectSystemPreferences]);
+
+  // Set up accessibility watcher
+  useEffect(() => {
+    if (respectSystemPreferences && typeof window !== "undefined") {
+      accessibilityWatcher.current = new AccessibilityWatcher(
+        handleAccessibilityChange
+      );
+
+      return () => {
+        if (accessibilityWatcher.current) {
+          accessibilityWatcher.current.destroy();
+        }
+      };
+    }
+  }, [handleAccessibilityChange, respectSystemPreferences]);
 
   // Hide system cursor
   useEffect(() => {
     if (!enable || showSystemCursor) return;
-    const rootCursor = document.documentElement.style.cursor;
-    const bodyCursor = document.body.style.cursor;
+
+    // get the originally set values
+    const originalRootCursor = document.documentElement.style.cursor;
+    const originalBodyCursor = document.body.style.cursor;
+
+    // override styles with no cursor
     document.body.style.setProperty("cursor", "none", "important");
     document.documentElement.style.setProperty("cursor", "none", "important");
+
     return () => {
-      document.documentElement.style.cursor = rootCursor;
-      document.body.style.cursor = bodyCursor;
+      document.documentElement.style.setProperty("cursor", originalRootCursor);
+      document.body.style.setProperty("cursor", originalBodyCursor);
     };
   }, [enable, showSystemCursor]);
 
-  const layerSizes = useMemo(
-    () => layers.map((l) => l.size ?? defaultSvgOptions.size),
-    [layers]
-  );
-
-  // Sync positions when layers change
+  // Position and animation of cursor
   useEffect(() => {
-    const current = layerPositions.current;
-    if (current.length !== layers.length) {
-      const { x, y } = targetPosition.current;
-      layerPositions.current = layers.map((_, i) => current[i] ?? { x, y });
-    }
-  }, [layers.length]);
-
-  // Pointer tracking
-  useEffect(() => {
-    const handlePointerMove = (e: PointerEvent) => {
-      const events = e.getCoalescedEvents?.() ?? [e];
-      const last = events[events.length - 1];
-      targetPosition.current.x = last.clientX;
-      targetPosition.current.y = last.clientY;
+    // Handler for calculating current system cursor position
+    const handleMouseMove = (e: MouseEvent) => {
+      targetPosition.current = { x: e.clientX, y: e.clientY };
     };
-    window.addEventListener("pointermove", handlePointerMove, {
-      passive: true,
-    });
-    return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, []);
 
-  // Animation loop for cursor layers (with smoothing)
-  useEffect(() => {
-    if (!enable) return;
+    // Recursive function for animating each cursor layer
     const animate = () => {
+      if (!cursorRef.current) return;
+
+      const children = cursorRef.current.children;
       const now = performance.now();
       const delta = now - prevTime.current;
       prevTime.current = now;
-      const container = cursorRef.current;
-      if (!container) return;
-      const children = Array.from(container.children) as HTMLElement[];
 
       layers.forEach((layer, i) => {
-        const pos = layerPositions.current[i];
+        const pos = layerPosisitions.current[i];
         const delayMs = layer.delay ?? defaultSvgOptions.delay;
         const size = layerSizes[i];
-        const smoothing = delayMs > 0 ? Math.exp(-delta / delayMs) : 0; // 0 means snap
+
+        // update position
+        const smoothing = Math.exp(-delta / delayMs); // exponential smoothing based on ms delay
         pos.x = pos.x * smoothing + targetPosition.current.x * (1 - smoothing);
         pos.y = pos.y * smoothing + targetPosition.current.y * (1 - smoothing);
-        const layerEl = children[i];
-        if (!layerEl) return;
-        layerEl.style.setProperty("--rc-x", `${pos.x - size.width / 2}px`);
-        layerEl.style.setProperty("--rc-y", `${pos.y - size.height / 2}px`);
+
+        // apply transform directly to layer
+        const layerEl = children[i] as HTMLElement;
+        layerEl.style.transform = `translate3d(${pos.x - size.width / 2}px, ${
+          pos.y - size.height / 2
+        }px, 0)`; // use translate3d as it may be more likely to force GPU computation for performance (?)
       });
 
+      // call next animation frame
       animationFrame.current = requestAnimationFrame(animate);
     };
+
+    // bind the mousemove handler
+    window.addEventListener("mousemove", handleMouseMove);
+    // trigger the first animation frame
     animationFrame.current = requestAnimationFrame(animate);
 
-    // Pause on tab hide
-    const onVis = () => {
-      if (document.hidden && animationFrame.current) {
-        cancelAnimationFrame(animationFrame.current);
-        animationFrame.current = null;
-      } else if (!document.hidden && !animationFrame.current) {
-        prevTime.current = performance.now();
-        animationFrame.current = requestAnimationFrame(animate);
-      }
-    };
-    document.addEventListener("visibilitychange", onVis);
-
+    // remove effects on unmount
     return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
       if (animationFrame.current) cancelAnimationFrame(animationFrame.current);
-      document.removeEventListener("visibilitychange", onVis);
     };
-  }, [enable, layers, layerSizes]);
+  }, [enable, layers]);
 
-  // Click effects
+  // Early return if accessibility requirements suggest disabling cursor
+  if (!enable || isAccessibilityDisabled) {
+    return null;
+  }
+
+  // Legacy accessibility checks (kept for backward compatibility)
+  // Detect touch device
+  const isTouchDevice =
+    typeof window !== "undefined" &&
+    ("ontouchstart" in window ||
+      (navigator.maxTouchPoints && navigator.maxTouchPoints > 0));
+
+  // Detect accessibility needs
+  const prefersReducedMotionLegacy =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const forcedColors =
+    typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(forced-colors: active)").matches;
+  const hasAccessibilityNeeds = prefersReducedMotionLegacy || forcedColors;
+
+  // Disable cursor if touch device (unless allowTouch) or accessibility needs (unless ignoreAccessibility)
+  if (
+    (isTouchDevice && !allowTouch) ||
+    (hasAccessibilityNeeds && !ignoreAccessibility)
+  )
+    return null;
+
+  // Ensure system cursor is shown for elements that aren't cursor:default or cursor:pointer
   useEffect(() => {
-    if (!clickEffects.length || (hasA11yNeeds && !ignoreAccessibility)) return;
-
-    // load the effects registry (dynamically scans folder when available)
-    let effects: Record<string, any> | null = null;
-    const loadEffects = async () => {
-      if (!effects) {
-        // optional runtime-only module; provide a safe fallback so builds without the effects folder still succeed
-        // @ts-ignore - dynamic optional import of a module that may not exist in some builds
-        const mod = await import("../effects/loader").catch(() => ({
-          loadEffectsRegistry: async () => ({} as Record<string, any>),
-        }));
-        effects = await (mod.loadEffectsRegistry
-          ? mod.loadEffectsRegistry()
-          : ({} as Record<string, any>));
+    if (!enable) return;
+    // Find all elements except those with cursor:default or cursor:pointer
+    const allElements = document.querySelectorAll<HTMLElement>("*");
+    allElements.forEach((el) => {
+      const style = window.getComputedStyle(el);
+      if (
+        style.cursor !== "default" &&
+        style.cursor !== "pointer" &&
+        style.cursor !== "none"
+      ) {
+        el.style.cursor = "crosshair";
       }
-      return effects;
+    });
+    return () => {
+      allElements.forEach((el) => {
+        el.style.cursor = "";
+      });
     };
+  }, [enable]);
 
-    const onPointerDown = (e: PointerEvent) => {
-      loadEffects().then((map) => {
-        if (!map) {
-          // No effects registry available; silently ignore clicks or log if desired.
-          return;
+  // Add pointer (click) effects handlers.
+  useEffect(() => {
+    if (!clickEffects.length) return;
+    if (hasAccessibilityNeeds && !ignoreAccessibility) return; // don't animate if user prefers reduced motion
+
+    const activeCleanups = new Set<() => void>();
+    // We attach to window so clicks anywhere trigger them.
+    const onPointerDown = (event: PointerEvent) => {
+      const layerElements = cursorRef.current
+        ? Array.from(cursorRef.current.children).map(
+            (child) => child as HTMLElement
+          )
+        : [];
+      // we pass the current cursor layers as context to the effect handlers, in case they want to use them
+      clickEffects.forEach((effect) => {
+        const handler = effectHandlers[effect.type];
+        if (!handler) return;
+
+        // Announce effect to screen readers if enabled
+        if (announceEffects) {
+          announceToScreenReader(`Cursor effect ${effect.type} activated`);
         }
 
-        const svgs = cursorRef.current
-          ? (Array.from(cursorRef.current.children) as HTMLElement[])
-          : [];
-        const ctx = {
-          event: e,
+        const cleanup = handler(effect, {
+          event,
           cursorRef: cursorRef.current,
-          layerElements: svgs,
+          layerElements,
           zIndex,
-        };
-
-        clickEffects.forEach((cfg) => {
-          const handler = map[cfg.type];
-          if (typeof handler === "function") {
-            try {
-              handler(cfg as any, ctx);
-            } catch (err) {
-              // don't throw from event handler
-
-              console.warn("Effect handler error", err);
-            }
-          } else {
-            console.warn("Unknown click effect", cfg.type);
-          }
         });
+        if (typeof cleanup === "function") {
+          activeCleanups.add(cleanup);
+        }
       });
     };
 
-    window.addEventListener("pointerdown", onPointerDown);
-    return () => window.removeEventListener("pointerdown", onPointerDown);
-  }, [clickEffects, hasA11yNeeds, ignoreAccessibility, zIndex]);
+    window.addEventListener("pointerdown", onPointerDown); // attach to window to catch all clicks anywhere
 
-  const cursorEl = (
+    return () => {
+      window.removeEventListener("pointerdown", onPointerDown);
+      activeCleanups.forEach((cleanup) => cleanup());
+      activeCleanups.clear();
+    };
+  }, [
+    clickEffects,
+    hasAccessibilityNeeds,
+    ignoreAccessibility,
+    zIndex,
+    announceEffects,
+  ]);
+
+  return (
     <div
       ref={cursorRef}
-      className={className}
-      role="presentation"
-      aria-hidden="true"
+      role="presentation" // Indicates this is decorative
+      aria-hidden="true" // Hidden from screen readers since it's visual only
       style={{
         position: "fixed",
         top: 0,
         left: 0,
         pointerEvents: "none",
-        zIndex,
-        mixBlendMode,
-        ...style,
+        zIndex: zIndex,
+        mixBlendMode: mixBlendMode,
       }}
     >
+      {/* Render each layer in order, reducing z-index per layer */}
       {layers.map((layer, i) => {
-        const Svg = resolveSvg(layer.SVG);
+        // Resolve the SVG component
+        const SvgComponent = resolveSvg(layer.SVG);
+        // Render the SVG cursor layer
         return (
-          <Svg
+          <SvgComponent
             key={`reactive-cursor-layer-${i}`}
             color={layer.fill ?? defaultSvgOptions.fill}
             stroke={layer.stroke ?? defaultSvgOptions.stroke}
@@ -285,18 +307,12 @@ const ReactiveCursor = ({
               left: 0,
               opacity: layer.opacity ?? defaultSvgOptions.opacity,
               zIndex: zIndex - i,
-              willChange: "transform",
-              transformOrigin: "center",
-              transform:
-                "translate3d(var(--rc-x,0px), var(--rc-y,0px), 0) rotate(var(--rc-rot,0deg)) scale(var(--rc-scale,1))",
             }}
           />
         );
       })}
     </div>
   );
-
-  return createPortal(cursorEl, document.body);
 };
 
 export default ReactiveCursor;

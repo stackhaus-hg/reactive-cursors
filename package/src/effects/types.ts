@@ -1,11 +1,4 @@
-import { PointerEvent as PtrEvent } from "react";
-
 export type EffectType =
-  | "scale"
-  | "ripple"
-  | "rotate"
-  | "colorShift"
-  | "burst"
   | "onclick_scale"
   | "onclick_ripple"
   | "onclick_rotate"
